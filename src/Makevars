@@ -3,13 +3,13 @@ SOURCES=$(wildcard  judgments/*.cpp  measures/*.cpp)
 
 OBJECTS = $(SOURCES:.cpp=.o)
 
-PKG_CPPFLAGS=-I. 
+PKG_CPPFLAGS=-I. -I/Users/praveen/work/judgments
 PKG_LIBS=`${R_HOME}/bin/Rscript -e "Rcpp:::LdFlags()"` 
 
 all: $(SHLIB)
 
 #clean:
-#    rm -f $(OBJECTS); rm -f *.so
+#  rm -f $(OBJECTS); rm -f *.so
 
 
 ## As an alternative, one can also add this code in a file 'configure'

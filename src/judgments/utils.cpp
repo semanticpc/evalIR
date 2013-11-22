@@ -29,7 +29,7 @@ public:
         numberOfRuns = 0;
     }
 
-    Runs(vector<string> runsPath,vector<string> runids, int docLimit=1000){
+    Runs(vector<string> runsPath, vector<string> runids, int docLimit=1000){
         numberOfRuns = 0;
         if(runsPath.size() != runids.size())
             throw(Rcpp::exception(" Runs and Runids must be equal"));
@@ -60,7 +60,6 @@ public:
             }
 
             if( docCount < docLimit){
-                // Add to vector
                 query_docs[query][docid].add(runid, docCount + 1, score);
             }
             ++docCount;
@@ -155,7 +154,6 @@ RCPP_MODULE(Runs) {
 
     class_<Runs> ("Runs")
         .constructor<vector<string>,vector<string>, int>("Default Constructor")
-        // read-only property
         .method("getQueries", &Runs::getQueries)
         .method("getRunids", &Runs::getRunids)
         .method("getRankMatrix", &Runs::getRankMatrix)
