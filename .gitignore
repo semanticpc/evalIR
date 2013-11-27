@@ -1,0 +1,12 @@
+**.md
+**.log
+**.synctex.gz
+**.tex
+**.Rproj.user
+**.Rhistory
+**.RData
+**.DS_Store
+**.o
+**.so
+**.dll
+**/nbproject
