@@ -1,10 +1,11 @@
 metaAP <- function(rank_matrix, method=c("sum", "mean", "max", "sd")){
   method <- match.arg(method)
   N <- apply(rank_matrix, 2, max)
+  
   H_N <- sapply(N, function(n) sum(1/1:n))
   
-  H_n <- apply(rank_matrix, 1:2, function(x) if(x > 0) sum(1/1:x)
-               else 0) 
+  H_n <- apply(rank_matrix, 1:2, function(x) if(x > 0) sum(1/1:x) else 0) 
+  
   if(method == "sum") mat <- rowSums(1 + H_N - H_n)
   else if(method == "mean") mat <- rowMeans(1 + H_N - H_n)
   else if(method == "max") mat <- apply((1 + H_N - H_n), 1, max)
