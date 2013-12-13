@@ -2,6 +2,7 @@ library(evalIR, quietly=T)
 library(RMySQL, quietly=T)
 library(RCurl, quietly=T)
 
+
 pool.documents <- function(runFiles, runIDs, pooling_depth=5){
   runs <- read.runs(runPaths= runFiles, runids= runIDs, limit= 1000)
   
