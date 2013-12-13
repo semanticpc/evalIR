@@ -10,8 +10,7 @@ pool.documents <- function(runFiles, runIDs, pooling_depth=5){
     pooled_docs <- pooling.topk(runs$getRankMatrix(x$query), pooling_depth)
     metaAP <- metaAP(runs$getRankMatrix(x$query), "mean")
     filtered_metaAP <- metaAP[names(pooled_docs)]
-    return(data.frame(docID=names(pooled_docs),
-                      prob=filtered_metaAP/sum(filtered_metaAP)))
+    return(data.frame(docID=names(filtered_metaAP),prob=filtered_metaAP))
   }
   
   pooled_docs <- adply(data.frame(query=runs$getQueries()), 1, 
@@ -170,16 +169,32 @@ create.AMTHITs <- function(amtHandle, hittype, HIT_set, batch_name){
 }
 
 analyze <- function(triplets, runs){
-  query <- unique(triplets$query)
-  mat <- runs$getRankMatrix(query)
+  q <- unique(triplets$query)
+  mat <- runs$getRankMatrix(q)
+  metaAP <- metaAP(mat, "mean")
+  
   range.check <- function(ls) {
     sum(sapply(ls, FUN=function(x) x %in% c(1,2,3,4,5)))
   }
-  t <- ddply(triplets, 1, function(x) range.check(mat[x$top_doc,]))$V1
-  l <- ddply(triplets, 1, function(x) range.check(mat[x$left_doc,]))$V1
-  r <- ddply(triplets, 1, function(x) range.check(mat[x$right_doc,]))$V1
-
-  return(data.frame(top=sum(t), left= sum(l), right= sum(r)))
+  
+  #t <- ddply(triplets, 1, function(x) range.check(mat[x$top_doc,]))$V1
+  #l <- ddply(triplets, 1, function(x) range.check(mat[x$left_doc,]))$V1
+  #r <- ddply(triplets, 1, function(x) range.check(mat[x$right_doc,]))$V1
+  
+  docs.freq <- sort(table(unlist(c(subset(triplets, query == q, 
+                                          select=c("left_doc", 
+                                                   "right_doc", 
+                                                   "top_doc"))))), decreasing=T)
+  
+  c <- aaply(names(docs.freq), 1, function(x) range.check(mat[x,]))
+  
+  res <- data.frame(row.names=names(docs.freq), 
+                    freq=docs.freq, 
+                    metaAP=metaAP[names(docs.freq)],
+                    counts=c)
+  return(data.frame(kendall=cor(res$freq, res$metaAP, method="kendall"),
+                    counts=sum(res$counts)))
+  #return(data.frame(top=sum(t), left= sum(l), right= sum(r)))
   
 }
 
@@ -187,9 +202,9 @@ run <- function(){
   trec09 <- list.files(path='demo/data/diversity/trec2009', full.names=T)
   trec09_runids <- basename(trec09)
   pooled_docs <- pool.documents(trec09, trec09_runids, 5)
-  triplets <- ddply(pooled_docs, .(query), sample.triplets, 100, T)
+  triplets <- ddply(pooled_docs, .(query), sample.triplets, 100, F)
   
-  runs <- read.runs(runPaths= trec09, runids= trec09_runids, limit= 1000)
+  runs <- read.runs(runPaths= trec09, runids= trec09_runids, limit= 5)
   res <- ddply(triplets, .(query), analyze, runs)
   res
 }
