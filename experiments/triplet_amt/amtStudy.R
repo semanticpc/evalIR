@@ -1,7 +1,7 @@
 library(evalIR, quietly=T)
 library(RMySQL, quietly=T)
 library(RCurl, quietly=T)
-
+library(plyr)
 
 pool.documents <- function(runFiles, runIDs, pooling_depth=5){
   runs <- read.runs(runPaths= runFiles, runids= runIDs, limit= 1000)
@@ -63,9 +63,9 @@ sample.triplets <- function(documents, size, prob=F){
     row[2] <- tmp
     code <- paste("d",row, sep='',collapse='')
     sampled_set[(i*2) - 1] <- code
-    triplet_row  <- data.frame( top_doc = documents[row[1],]$docID,
-                                left_doc = documents[row[2],]$docID,
-                                right_doc = documents[row[3],]$docID, 
+    triplet_row  <- data.frame( top_doc = documents[row[1],"docID"],
+                                left_doc = documents[row[2],"docID"],
+                                right_doc = documents[row[3],"docID"], 
                                 stringsAsFactors=F)
     sampled_triplets[i,] <- triplet_row
       
@@ -200,12 +200,15 @@ analyze <- function(triplets, runs){
 }
 
 run <- function(){
-  trec09 <- list.files(path='demo/data/diversity/trec2009', full.names=T)
-  trec09_runids <- basename(trec09)
-  pooled_docs <- pool.documents(trec09, trec09_runids, 5)
+  runFiles <- list.files(path='demo/data/diversity/trec2009', full.names=T)
+  runIDs <- basename(runFiles)
+  runs <- read.runs(runPaths= runFiles, runids= runIDs, limit= 5)
+  
+  pooled_docs <- pool.documents(runFiles, runIDs, 5)
+  
   triplets <- ddply(pooled_docs, .(query), sample.triplets, 100, F)
   
-  runs <- read.runs(runPaths= trec09, runids= trec09_runids, limit= 5)
+  runs <- read.runs(runPaths= runFiles, runids= runIDs, limit= 5)
   res <- ddply(triplets, .(query), analyze, runs)
   res
 }

@@ -10,8 +10,6 @@
 #' first argument.'
 
 pooling.topk <- function(rank_matrix, k){
-  #rank_matrix <- apply(rank_matrix, 1:2, function(x) if(x == 0) NA else x)
-  #min_ranks <- apply(rank_matrix, 1, min, na.rm=T)
   min_ranks <- apply(rank_matrix, 1, FUN = function(x) {min(x[x > 0])})
   return(min_ranks[min_ranks <= k])
 }
