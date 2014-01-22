@@ -48,7 +48,9 @@ public:
         while (getline(qrelsFile, line)){
             istringstream iss(line);
             iss >> query >> q0 >> docid >> rank >> score >> id;
-
+            
+            if(q0 != "Q0") continue;
+            
             if(first){
                 curQuery = query;
                 first = false;
