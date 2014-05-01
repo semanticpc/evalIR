@@ -1,245 +1,473 @@
-eval.diversity <- function(qrels, runs, ranks=NULL, query=FALSE){
+#' @title Diversity Evaluation
+#'
+#' @description
+#' \code{eval.diversity} returns a matrix with the scores returned by various
+#' diversity evaluation measures for each system run per topic.
+#' 
+#' @param qrels C++ object returned by \code{read.qrels} with type = 'diversity'
+#' 
+#' @param runs  C++ object returned by \code{read.runs}
+#' 
+#' @param measures a character vector containing a set of evaluation measures. 
+#'  Accepted measures are c('s-recall', 'Alpha-DCG', 'Alpha-nDCG', 'ERR-IA',
+#' 'MAP-IA','nDCG-IA','NRBP', 'nNRBP'). 
+#' Make sure to use the exact same names.
+#'
+#' @param ranks A numeric vector contisting of a set of ranks for which scores 
+#' are to be computed. 
+#'  
+#' @details
+#' The function is the main entry to obtain the scores for a set of evaluation
+#' measures. The returns a matrix with the following headers: runid, queryid,
+#' nDCG@10, .... A set of measures can be passed on as argument. 
+#' 
+#' @export
+#' 
+eval.diversity <- function(qrels, runs, measures=NULL, decimal = 4, 
+                           rankCutoff=1000, ranks=NULL, 
+                           sort=c('trecSort', 'rankSort')){
+  sort <- match.arg(sort)
   maxRank <- max(ranks)
   all_q_res <- data.frame()
-  for(run in names(runs)){
-    runid <- run
-    
-    for(q in names(qrels)){
-      run <- names(sort(runs$getRankMatrix(q)[,runid][runs$getRankMatrix(q)[,runid] > 0]))
-      grades_mat <- qrels$judgeQuery(q, run)
-      qrels_grades_mat <- qrels$qrels$getMatrix(q)
+  
+  
+  if(is.null(measures)) measures <- c('srecall', 'AlphaDCG', 'AlphanDCG',
+                                      'ERRIA','MAPIA','DCGIA','NRBP', 'nNRBP',
+                                      'num_ret')
+  for(runid in runs$getRunids()){
+    for(q in qrels$getQueries()){
+      
+      # Run Rank List Sorting 
+      run <- runSort(runs, q, runid, sort)
+      
+      grades <- qrels$judgeQuery(q, run)
+      
+      qrels_grades <- qrels$getMatrix(q)
+      stProb <- qrels$getSubtopicProbabilties(q)
+      
+      # Compute Ideal Matrices 
       
       header <- c()
       res <- c()
       maxRank <- max(ranks)
       
-      header <- c(header, c('runid'))
       res <- c(res, runid)
+      header <- c(header, c('runid'))
       
-      header <- c(header, c('topic'))
       res <- c(res, q)
-      
-      # Compute S-Recall      
-      res <- c(res, SRecall(qrels[[q]], mat[1:maxRank,], ranks))
-      header <- c(header, sapply(ranks,function(x) paste('srecall@',x,sep='')))
-      
-      res <- c(res, AlphaDCG(qrels[[q]], mat[1:maxRank,], ranks))
-      header <- c(header, sapply(ranks,function(x) paste('aDCG@',x,sep='')))
-      
-      res <- c(res, AlphaNDCG(qrels[[q]], mat[1:maxRank,], ranks))
-      header <- c(header, sapply(ranks,function(x) paste('anDCG@',x,sep='')))      
-      
-      res <- c(res, ERRIA(qrels[[q]], mat[1:maxRank,], ranks))      
-      header <- c(header, sapply(ranks,function(x) paste('ERR-IA@',x,sep='')))
-      
-      res <- c(res, DCGIA(qrels[[q]], mat[1:maxRank,], ranks))
-      header <- c(header, sapply(ranks,function(x) paste('DCG-IA@',x,sep='')))
-      
-      res <- c(res, MAPIA(qrels[[q]], mat))
-      header <- c(header, c('MAP-IA'))
-      
-      res <- c(res, PrecIA(qrels[[q]], mat[1:maxRank,], ranks))      
-      header <- c(header, sapply(ranks,function(x) paste('Prec-IA@',x,sep='')))
-      
-      res <- c(res, NRBP(qrels[[q]], mat))
-      header <- c(header, c('NRBP'))
-      
-      res <- c(res, nNRBP(qrels[[q]], mat))
-      header <- c(header, c('nNRBP'))
+      header <- c(header, c('topic'))
+
+      for(measure in measures){
+        if(measure %in% c('AlphaDCG', 'AlphanDCG', 'srecall')){
+          res <- c(res, do.call(measure, list(qrels_grades, grades, ranks)))
+          header <- c(header, paste0(measure,'@',ranks))
+        }
+          
+        else if(measure %in% c('ERRIA', 'DCGIA')){
+          res <- c(res, do.call(measure, list(qrels_grades, grades, 
+                                              ranks, subtopicProbDist=stProb)))
+          header <- c(header, paste0(measure,'@',ranks))
+        }
+          
+        else if(measure %in% c('MAPIA')){
+          res <- c(res, do.call(measure, list(qrels_grades, grades, rankCutoff,
+                                              subtopicProbDist=stProb)))
+          header <- c(header, measure)
+        }
+          
+        else if(measure %in% c('NRBP', 'nNRBP')){
+          res <- c(res, do.call(measure, list(qrels_grades, grades, rankCutoff)))
+          header <- c(header, measure)
+        } 
+        else if(measure %in% c('num_ret')){
+          res <- c(res, do.call(measure, list(grades, rankCutoff)))
+          header <- c(header, measure)
+        }
+          
+                
+      }
       
       names(res) <- header
-      
       all_q_res <- rbind(all_q_res, t(res))
     }
   }
-
-  if(query)
-    all_q_res <- apply(all_q_res, 2, mean);
+  # Round Scores to 'decimal' point
+  numOfCols <- ncol(all_q_res)
+  all_q_res[,3:numOfCols] <- sapply(all_q_res[,3:numOfCols], function(x)
+    round(as.numeric(as.character(x)), decimal)) 
   
-  return(all_q_res);
+  return(all_q_res)
 }
 
-# Evaluation Measures for Novelty and Diversity 
+#' @title Number of Retrieved Documents
+#'
+#' @description
+#' \code{num_ret} returns the number of documents retrieved.
+#' 
+#' @param grades a numeric matrix of the grades. 
+#' 
+#' @param rankLimit document cut off 
+#' 
+num_ret.matrix <- function(grades, rankLimit=1000){
+  if(rankLimit <= nrow(grades)) grades <- grades[1:rankLimit,]
+  return(nrow(grades))
+}
 
-AlphaDCG <- function(qrels, run, ranks, alpha=0.5){
+#' @title Alpha - Discounted Cumulative Gain at k
+#'
+#' @description
+#' \code{AP}  Precision
+#' 
+#' @param qrels_grades a numeric matrix containing the grades all the judged 
+#' documents in the qrels file.
+#' 
+#' @param grades a numeric matrix of the grades. 
+#' 
+#' @param ranks a numeric vector containing a set of ranks at which the measure 
+#' is calculated.
+#' 
+#' @export
+AlphaDCG <- function(qrels_grades, grades, ranks, idealMatrix=NULL,
+                     alpha=0.5){
+  
   maxRank <- max(ranks)
+  numOfSubtopics <- sum(colSums(qrels_grades) > 0)
+  if(nrow(grades) < maxRank) grades <- fill.matrix(grades, maxRank)
+  grades <- data.matrix(grades[1:maxRank,])
   
-  # Get judged matrix of subtopic presence 
-  runMatrix <- judge(qrels, run, maxRank)
   
-
-  utility <- utility.alphaDCG(runMatrix)
+  utility <- utility.alphaDCG(grades, alpha)
   discount <- P.LOG (maxRank)
   adcg_values <- cumsum(utility * discount)
   
   # Ideal ideal normalization as done by ndeval
-  idealIdealGain <- (1 - alpha)^c(0:(maxRank-1)) * qrels@numOfSubtopics
+  idealIdealGain <- (1 - alpha)^c(0:(maxRank-1)) * numOfSubtopics
   norm <- cumsum(idealIdealGain * discount)
   adcg_values <- adcg_values / norm
-  
+  names(adcg_values) <- c()
   return(adcg_values[ranks])
 }
 
-AlphaNDCG <- function(qrels, run, ranks, alpha=0.5, idealMatrix=NULL){
+
+#' @title Alpha - Normalized Discounted Cumulative Gain at k
+#'
+#' @description
+#' \code{AP}  Precision
+#' 
+#' @param qrels_grades a numeric matrix containing the grades all the judged 
+#' documents in the qrels file.
+#' 
+#' @param grades a numeric matrix of the grades. 
+#' 
+#' @param ranks a numeric vector containing a set of ranks at which the measure 
+#' is calculated.
+#' 
+#' @export
+AlphanDCG <- function(qrels_grades, grades, ranks, idealMatrix=NULL, alpha=0.5){
   
   maxRank <- max(ranks)
+  if(nrow(grades) < maxRank) grades <- fill.matrix(grades, maxRank)
+  grades <- data.matrix(grades[1:maxRank,])
   
-  # Using a C++ backend obtain the idea subtopic ranking using a greedy approach
-  # Adding 1 as R Vectors indexes starts from 1 
-  if(is.null(idealMatrix)) idealMatrix <- ideal.alphaDCG(qrels, maxRank)  
-    
+  # Using a C++ backend obtain the ideal subtopic ranking using a greedy approach
+  if(is.null(idealMatrix)) idealMatrix <- ideal.alphaDCG(qrels_grades, maxRank)  
+  
+  
+  # Calculation of Ideal Score
   ideal.utility <- utility.alphaDCG(idealMatrix)
   ideal.discount <- P.LOG (maxRank)
   ideal.adcg <- cumsum(ideal.utility * ideal.discount)
   
-  
-  runMatrix <- judge(qrels, run, maxRank)
-  run.utility <- utility.alphaDCG(runMatrix)
+  # Calculation of System Score
+  run.utility <- utility.alphaDCG(grades)
   run.discount <- P.LOG (maxRank)
   run.adcg <- cumsum(run.utility * run.discount)
   
   andcg_values <- run.adcg / ideal.adcg
+  names(andcg_values) <- c()
   
   return(andcg_values[ranks])
 }
 
-SRecall <- function(qrels, run, ranks){
+
+#' @title Subtopic Recall
+#'
+#' @description
+#' \code{AP}  Precision
+#' 
+#' @param qrels_grades a numeric matrix containing the grades all the judged 
+#' documents in the qrels file.
+#' 
+#' @param grades a numeric matrix of the grades. 
+#' 
+#' @param ranks a numeric vector containing a set of ranks at which the measure 
+#' is calculated.
+#' 
+#' @export
+srecall <- function(qrels_grades, grades, ranks, idealMatrix=NULL){
   
   maxRank <- max(ranks)
-
-  # Get judged matrix of subtopic presence 
-  runMatrix <- judge(qrels, run, maxRank)
-  
+  if(nrow(grades) < maxRank) grades <- fill.matrix(grades, maxRank)
+  grades <- data.matrix(grades[1:maxRank,]) 
   
   # Using a C++ backend obtain the idea subtopic ranking using a greedy approach
-  idealMatrix <- ideal.srecall(qrels, maxRank)
+  if(is.null(idealMatrix)) idealMatrix <- ideal.srecall(qrels_grades, maxRank)
   
   # Count the maximum number of subtopic that can be retrieved at each rank
-  subtopicRet_ideal <- sapply(1:maxRank, function(x) 
+  ideal.subtopicCount <- sapply(1:maxRank, function(x) 
     sum((apply(data.matrix(idealMatrix[1:x,]), 2, sum) >= 1) * 1))
   
-  # Count the number of unique subtopics retrieved at each rank
-  subtopicRet_run <- sapply(1:maxRank, function(x) 
-    sum((apply(data.matrix(runMatrix[1:x,]), 2, sum) >= 1) * 1))
+  # Count the number of unique subtopics retrieved by the System
+  run.subtopicCount <- sapply(1:maxRank, function(x) 
+    sum((apply(data.matrix(grades[1:x,]), 2, sum) >= 1) * 1))
   
-  srecall_values <- subtopicRet_run/subtopicRet_ideal
+  srecall_values <- run.subtopicCount/ideal.subtopicCount
   srecall_values[is.na(srecall_values)] <- 0
+  names(srecall_values) <- c()
   
   return(srecall_values[ranks])
 }
 
-ERRIA <- function(qrels, run, ranks, alpha=0.5){
+
+#' @title Expected Reciprocal Rank - Intent Aware at k
+#'
+#' @description
+#' \code{AP}  Precision
+#' 
+#' @param qrels_grades a numeric matrix containing the grades all the judged 
+#' documents in the qrels file.
+#' 
+#' @param grades a numeric matrix of the grades. 
+#' 
+#' @param ranks a numeric vector containing a set of ranks at which the measure 
+#' is calculated.
+#' 
+#' @export
+ERRIA <- function(qrels_grades, grades, ranks, subtopicProbDist=NULL, 
+                  alpha=0.5){
+  
   maxRank <- max(ranks)
+  numOfSubtopics <- sum(colSums(qrels_grades) > 0)
+  if(nrow(grades) < maxRank) grades <- fill.matrix(grades, maxRank)
+  grades <- data.matrix(grades[1:maxRank,])
+  
+  
   # If numOfSubtopics is zero no relevant documents for any subtopic
-  if(qrels@numOfSubtopics == 0) return(rep(0, maxRank))
+  if(numOfSubtopics == 0) return(rep(0, maxRank))
   
-  # Get judged matrix of subtopic presence 
-  runMatrix <- judge(qrels, run, maxRank)
+  if(is.null(subtopicProbDist)) 
+    subtopicProbDist <- rep(1/numOfSubtopics, numOfSubtopics)
   
-  erria <- sapply(1:ncol(qrels@relDocMatrix), function(st) 
-    P.Rank(maxRank) * P.ERR(maxRank, runMatrix[,st], 0.5))
-  colnames(erria) <- colnames(runMatrix)
-  erria <- erria * qrels@subtopicProbDist
-  erria <- cumsum(apply(erria, 1, sum))
+  
+  subtopics <- 1:ncol(qrels_grades)
+  subtopics <- subtopics[colSums(qrels_grades) > 0]
+  erria <- sapply(subtopics, function(st) 
+    ERR(NULL,grades[,st], 1:maxRank, maxGrade=1))
+  
+  #erria <- erria * subtopicProbDist
+  erria <- rowSums(erria)
   
   
   # Ideal ideal normalization as done by ndeval
-  idealIdealGain <- (1 - alpha)^c(0:(maxRank-1)) * qrels@numOfSubtopics
+  idealIdealGain <- (1 - alpha)^c(0:(maxRank-1)) * numOfSubtopics
   norm <- cumsum(idealIdealGain * P.Rank(maxRank))
   
   erria <- erria / norm
-  
+  names(erria) <- c()
   
   return(erria[ranks])
 }
 
-MAPIA <- function(qrels, run, rankLimit=1000){
 
+#' @title Mean Average Precision - Intent Aware 
+#'
+#' @description
+#' \code{AP}  Precision
+#' 
+#' @param qrels_grades a numeric matrix containing the grades all the judged 
+#' documents in the qrels file.
+#' 
+#' @param grades a numeric matrix of the grades. 
+#' 
+#' @param ranks a numeric vector containing a set of ranks at which the measure 
+#' is calculated.
+#' 
+#' @export
+MAPIA <- function(qrels_grades, grades, rankLimit=1000, subtopicProbDist=NULL){
+  
+  numOfSubtopics <- sum(colSums(qrels_grades) > 0)
+  if(nrow(grades) < rankLimit) grades <- fill.matrix(grades, rankLimit)
+  grades <- data.matrix(grades[1:rankLimit,])
+  
   # If numOfSubtopics is zero no relevant documents for any subtopic
-  if(qrels@numOfSubtopics == 0) return(0)
+  if(numOfSubtopics == 0) return(rep(0, maxRank))
   
-  # Get judged matrix of subtopic presence 
-  runMatrix <- judge(qrels, run, rankLimit)
+  if(is.null(subtopicProbDist)) 
+    subtopicProbDist <- rep(1/numOfSubtopics, numOfSubtopics)
   
-  mapia <- sapply(1:ncol(getSubtopicMatrix(qrels)), function(st) 
-    sum(utility.prec(runMatrix[,st]) * P.AP(runMatrix[,st], 
-                                            sum(qrels@relDocMatrix[,st]) ) ) )
-
-  names(mapia) <- colnames(getSubtopicMatrix(qrels))
-  mapia <- sum(mapia * qrels@subtopicProbDist)
+  subtopics <- 1:ncol(qrels_grades)
+  subtopics <- subtopics[colSums(qrels_grades) > 0]
+  mapia <- sapply(subtopics, function(st) 
+    sum(utility.prec(grades[,st]) * P.AP(grades[,st], sum(qrels_grades[,st]))))
+  
+  
+  mapia <- sum(mapia * subtopicProbDist) 
+  names(mapia) <- c()
   
   return(mapia)
 }
 
-PrecIA <- function(qrels, run, ranks){
+
+#' @title Precision - Intent Aware 
+#'
+#' @description
+#' \code{AP}  Precision
+#' 
+#' @param qrels_grades a numeric matrix containing the grades all the judged 
+#' documents in the qrels file.
+#' 
+#' @param grades a numeric matrix of the grades. 
+#' 
+#' @param ranks a numeric vector containing a set of ranks at which the measure 
+#' is calculated.
+#' 
+#' @export
+PrecIA <- function(qrels_grades, grades, ranks, subtopicProbDist=NULL){
+  
   maxRank <- max(ranks)
+  numOfSubtopics <- sum(colSums(qrels_grades) > 0)
+  if(nrow(grades) < maxRank) grades <- fill.matrix(grades, maxRank)
+  grades <- data.matrix(grades[1:maxRank,])
+  
   # If numOfSubtopics is zero no relevant documents for any subtopic
-  if(qrels@numOfSubtopics == 0) return(rep(0, maxRank))
+  if(numOfSubtopics == 0) return(rep(0, maxRank))
   
-  # Get judged matrix of subtopic presence 
-  runMatrix <- judge(qrels, run, maxRank)
+  if(is.null(subtopicProbDist)) 
+    subtopicProbDist <- rep(1/numOfSubtopics, numOfSubtopics)
   
-  precia <- sapply(1:ncol(qrels@relDocMatrix), function(st) 
-    utility.prec(runMatrix[,st]))
+  subtopics <- 1:ncol(qrels_grades)
+  subtopics <- subtopics[colSums(qrels_grades) > 0]
+  precia <- sapply(subtopics, function(st) utility.prec(grades[,st]))
   
-  colnames(precia) <- colnames(runMatrix)
-  precia <- precia * qrels@subtopicProbDist
-  precia <- apply(precia, 1, sum)
+  precia <- precia * subtopicProbDist
+  precia <- rowSums(precia) 
+  names(precia) <- c()
   
   return(precia[ranks])
 }
 
-DCGIA <- function(qrels, run, ranks, alpha=0.5){
+
+#' @title Discounted Cumulative Gain - Intent Aware 
+#'
+#' @description
+#' \code{AP}  Precision
+#' 
+#' @param qrels_grades a numeric matrix containing the grades all the judged 
+#' documents in the qrels file.
+#' 
+#' @param grades a numeric matrix of the grades. 
+#' 
+#' @param ranks a numeric vector containing a set of ranks at which the measure 
+#' is calculated.
+#' 
+#' @export
+DCGIA <- function(qrels_grades, grades, ranks, subtopicProbDist=NULL, 
+                  alpha=0.5){
+  
   maxRank <- max(ranks)
+  numOfSubtopics <- sum(colSums(qrels_grades) > 0)
+  if(nrow(grades) < maxRank) grades <- fill.matrix(grades, maxRank)
+  grades <- data.matrix(grades[1:maxRank,])
+  
   # If numOfSubtopics is zero no relevant documents for any subtopic
-  if(qrels@numOfSubtopics == 0) return(rep(0, maxRank))
+  if(numOfSubtopics == 0) return(rep(0, maxRank))
   
-  # Get judged matrix of subtopic presence 
-  runMatrix <- judge(qrels, run, maxRank)
+  if(is.null(subtopicProbDist)) subtopicProbDist <- rep(1, numOfSubtopics)
   
-  dcgia <- sapply(1:ncol(qrels@relDocMatrix), function(st) 
-    utility.cumulativeGain(runMatrix[,st]) * P.LOG(maxRank))
+  dcgia <- sapply(1:numOfSubtopics, function(st) 
+    utility.cumulativeGain(grades[,st]) * P.LOG(maxRank))
   
-  colnames(dcgia) <- colnames(runMatrix)
-  dcgia <- dcgia * qrels@subtopicProbDist
+  
+  dcgia <- dcgia * subtopicProbDist
   dcgia <- apply(dcgia, 1, sum)
+  names(dcgia) <- c()
   
   return(dcgia[ranks])
 }
 
-NRBP <- function(qrels, run, alpha=0.5, beta=0.5, rankLimit=1000){
 
+#' @title Novelty and Rank Biased Precision
+#'
+#' @description
+#' \code{AP}  Precision
+#' 
+#' @param qrels_grades a numeric matrix containing the grades all the judged 
+#' documents in the qrels file.
+#' 
+#' @param grades a numeric matrix of the grades. 
+#' 
+#' @param ranks a numeric vector containing a set of ranks at which the measure 
+#' is calculated.
+#' 
+#' @export
+NRBP <- function(qrels_grades, grades, rankLimit=1000, idealMatrix=NULL,
+                 alpha=0.5, beta=0.5){
+  
+  # We don't use the idealMatrix in this function at all
+  numOfSubtopics <- sum(colSums(qrels_grades) > 0)
+  if(nrow(grades) < rankLimit) grades <- fill.matrix(grades, rankLimit)
+  grades <- data.matrix(grades[1:rankLimit,])
+  
+  
+  
   # If numOfSubtopics is zero no relevant documents for any subtopic
-  if(qrels@numOfSubtopics == 0) return(0)
+  if(numOfSubtopics == 0) return(0)
   
-  # Get judged matrix of subtopic presence 
-  runMatrix <- judge(qrels, run, rankLimit)
+  nrbp <-  sum(utility.alphaDCG(grades) *  P.RBP(rankLimit))
   
-  nrbp <-  sum(utility.alphaDCG(runMatrix) *  P.RBP(rankLimit))
-  
-  nrbp <- nrbp / qrels@numOfSubtopics
+  nrbp <- nrbp / numOfSubtopics
   nrbp <- sum(nrbp * (1 - (1 - alpha) * beta))
   
   return(nrbp)
 }
 
-nNRBP <- function(qrels, run, alpha=0.5, beta=0.5, idealMatrix=NULL, rankLimit=1000){
+
+#' @title Normalized Novelty and Rank Biased Precisionf
+#'
+#' @description
+#' \code{AP}  Precision
+#' 
+#' @param qrels_grades a numeric matrix containing the grades all the judged 
+#' documents in the qrels file.
+#' 
+#' @param grades a numeric matrix of the grades. 
+#' 
+#' @param ranks a numeric vector containing a set of ranks at which the measure 
+#' is calculated.
+#' 
+#' @export
+nNRBP <- function(qrels_grades, grades, rankLimit=1000, idealMatrix=NULL,
+                  alpha=0.5, beta=0.5){
+  
+  numOfSubtopics <- sum(colSums(qrels_grades) > 0)
+  if(nrow(grades) < rankLimit) grades <- fill.matrix(grades, rankLimit)
+  grades <- data.matrix(grades[1:rankLimit,])
+  
+  
   
   # If numOfSubtopics is zero no relevant documents for any subtopic
-  if(qrels@numOfSubtopics == 0) return(0)
+  if(numOfSubtopics == 0) return(0)
   
-  if(is.null(idealMatrix)) idealMatrix <- ideal.alphaDCG(qrels, rankLimit)  
+  if(is.null(idealMatrix)) idealMatrix <- ideal.alphaDCG(qrels_grades, rankLimit)  
   
-  # Get judged matrix of subtopic presence 
-  runMatrix <- judge(qrels, run, rankLimit)
   
-  nrbp <-  sum(utility.alphaDCG(runMatrix) *  P.RBP(rankLimit))
-  nrbp <- nrbp / qrels@numOfSubtopics
+  nrbp <-  sum(utility.alphaDCG(grades) *  P.RBP(rankLimit))
+  nrbp <- nrbp / numOfSubtopics
   nrbp <- sum(nrbp * (1 - (1 - alpha) * beta))
   
   
   ideal.nrbp <-  sum(utility.alphaDCG(idealMatrix) *  P.RBP(rankLimit))
-  ideal.nrbp <- ideal.nrbp / qrels@numOfSubtopics
+  ideal.nrbp <- ideal.nrbp / numOfSubtopics
   ideal.nrbp <- sum(ideal.nrbp * (1 - (1 - alpha) * beta))
   
   
@@ -251,35 +479,37 @@ nNRBP <- function(qrels, run, alpha=0.5, beta=0.5, idealMatrix=NULL, rankLimit=1
 ################################################################################
 
 ideal.alphaDCG <- function(qrels_matrix, rank, alpha=0.5){
-  idealRanking <- 1 + .Call("andcg_ideal", 
-                            data.matrix(qrels_matrix), 
-                            rank, alpha, PACKAGE = "evalIR" )
-  idealMatrix <- qrels_matrix[idealRanking, ]
+  relDocs <- sum(rowSums(qrels_grades) > 0)
+  idealRanking <- 1 + .Call("andcg_ideal",data.matrix(qrels_matrix), 
+                            min(relDocs, rank), alpha, PACKAGE = "evalIR" )
+  
+  idealMatrix <- data.matrix(qrels_matrix[idealRanking, ])
   # Add dummy zero rows to idealMatrix if number of documents is less than rank
-  if(nrow(idealMatrix) < rank){
-    dummyMatrix <- matrix(0,nrow = rank - nrow(idealMatrix), 
-                          ncol = ncol(idealMatrix))
-    colnames(dummyMatrix) <- colnames(idealMatrix)
-    idealMatrix <- rbind(idealMatrix, dummyMatrix)
-  } 
-  idealMatrix
- 
-}
-
-ideal.srecall <- function(qrels, rank){
-  idealRanking <- 1 + .Call("srecall_ideal", data.matrix(qrels@relDocMatrix), 
-                            rank, PACKAGE = "evalIR" )
-  idealMatrix <- qrels@relDocMatrix[idealRanking, ]
-  # Add dummy zero rows to idealMatrix if number of documents is less than rank
-  if(nrow(idealMatrix) < rank){
-    dummyMatrix <- matrix(0,nrow = rank - nrow(idealMatrix), 
-                          ncol = ncol(idealMatrix))
-    colnames(dummyMatrix) <- colnames(idealMatrix)
-    idealMatrix <- rbind(idealMatrix, dummyMatrix)
-  } 
+  if(nrow(idealMatrix) < rank) idealMatrix <- fill.matrix(idealMatrix, rank)
   idealMatrix
   
 }
+
+ideal.srecall <- function(qrels_matrix, rank){
+  relDocs <- sum(rowSums(qrels_grades) > 0)
+  idealRanking <- 1 + .Call("srecall_ideal", data.matrix(qrels_matrix), 
+                            min(relDocs, rank), PACKAGE = "evalIR" )
+  idealMatrix <- data.matrix(qrels_matrix[idealRanking, ])
+  # Add dummy zero rows to idealMatrix if number of documents is less than rank
+  if(nrow(idealMatrix) < rank) idealMatrix <- fill.matrix(idealMatrix, rank)
+    
+  idealMatrix
+  
+}
+
+fill.matrix <- function(mat, rank){
+  dummyMatrix <- matrix(0,nrow = rank - nrow(mat), 
+                        ncol = ncol(mat))
+  colnames(dummyMatrix) <- colnames(mat)
+  return (rbind(mat, dummyMatrix))
+}
+
+
 
 
 

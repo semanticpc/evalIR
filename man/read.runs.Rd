@@ -1,18 +1,27 @@
 \name{read.runs}
 \alias{read.runs}
-\title{Sum of Vector Elements}
+\title{Read System Runs}
 \usage{
-  read.runs(runPaths, runids = NULL, limit = 1000,
-    sort = c("trecSort", "rankSort"))
+read.runs(runPaths, runids = NULL, limit = 1000, type = c("TREC"))
+}
+\arguments{
+  \item{runPaths}{a character vector containing a set of
+  the paths of the runs.}
+
+  \item{runids}{a character vector containing a set of
+  runid. Default: Uses the filename.}
+
+  \item{limit}{number of documents to parse for each query.
+  Truncates document beyond this limit.}
+
+  \item{type}{indicating the type of run. Currently only
+  supports TREC five column format.}
 }
 \description{
-  \code{sum} returns the sum of all the values present in
-  its arguments.
+\code{read.runs} returns a representation of a set of runs.
 }
 \details{
-  This is a generic function: methods can be defined for it
-  directly or via the \code{Summary} group generic.  For
-  this to work properly, the arguments \code{...} should be
-  unnamed, and dispatch is on the first argument.'
+The function creates a C++ object representing a set of
+system runs provided from the \code{runPaths} folder.
 }
 

@@ -2,16 +2,19 @@
 \alias{read.qrels}
 \title{Read Judgments}
 \usage{
-  read.qrels(qrelsPath, type = c("adhoc", "diversity"))
+read.qrels(qrelsPath, type = c("adhoc", "diversity"))
+}
+\arguments{
+  \item{qrelsPath}{path to the qrels file}
+
+  \item{type}{type of the qrels file. ('adhoc', diversity')
+  are currently supported.}
 }
 \description{
-  \code{sum} returns the sum of all the values present in
-  its arguments.
+\code{read.qrels} returns a representation of the qrels.
 }
 \details{
-  This function: methods can be defined for it directly or
-  via the \code{Summary} group generic.  For this to work
-  properly, the arguments \code{...} should be unnamed, and
-  dispatch is on the first argument.'
+The function creates a C++ object containing various
+information parsed from the qrels file.
 }
 

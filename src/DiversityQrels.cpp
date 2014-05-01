@@ -1,4 +1,4 @@
-#include "diversity_qrels.h"
+#include "include/DiversityQrels.hpp"
 
 using namespace Rcpp;
 using namespace std;
@@ -9,7 +9,6 @@ DivQrels::DivQrels(string qrelsPath) {
     int query, curQuery;
     double rel;
     Qrels qrels;
-
     bool first = true;
     while (std::getline(qrelsFile, line)) {
         std::istringstream iss(line);
@@ -23,7 +22,6 @@ DivQrels::DivQrels(string qrelsPath) {
             first = false;
         }
         if (curQuery != query) {
-
             qrels_list.insert(make_pair(curQuery, qrels));
             curQuery = query;
             qrels.queryID = curQuery;

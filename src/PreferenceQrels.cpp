@@ -1,15 +1,4 @@
-#include "pref_rels.h"
-
-
-
-//' RunQuery wrapper
-//'
-//' @param string an indri query
-//' @param string query number
-//' @param int number of results to be returned
-//' @param string runid for the retrieved results
-//'
-//' @return DataFrame results in the TREC format
+#include "include/PreferenceQrels.hpp"
 
 PrfJudgments::PrfJudgments(string _type) {
     if (_type == "2options" || _type == "4options")

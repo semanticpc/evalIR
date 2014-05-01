@@ -3,7 +3,8 @@ source("paths.R")
 
 process <- function(query, mat, folder, qrels){
   nmat <- c()
-  run_min <- apply(mat, 2, FUN = function(x) {min(x[x > 0])})
+  apply(mat, 2, FUN = function(x) {x[x==0] <- NA})
+  run_min <- apply(mat, 2, FUN = function(x) {min(x,na.rm=T)})
   for(i in 1:ncol(mat)){ 
     tmp <- mat[,i]
     tmp[tmp==0] <- run_min[i]

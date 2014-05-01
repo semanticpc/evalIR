@@ -32,10 +32,17 @@ P.RRR <- function(rank, grade_vector){
     grade_vector[k] / (R_k[k] * (R_k[k] + 1)), R_k))
 }
 
-P.ERR <- function(rank, grade_vector, theta=0.5){
+P.ERR <- function(rank, grade_vector, maxGrade=4, theta=0.5){
   R_k <- cumsum(grade_vector)
-  return(sapply(1:rank, function(k, R_k) 
-    grade_vector[k] * (1 - theta)^(R_k[k] - 1) * theta, R_k))
+  if(maxGrade == 1){
+    return(sapply(1:rank, function(k, R_k) 
+      grade_vector[k] * (1 - theta)^(R_k[k] - 1), R_k))
+  }else {
+    # Decay starts from 1 and it is the cumulative product of (1 - gainvalue)
+    decay <- c(1, cumprod(1 - grade_vector)[1:rank-1])
+    return(grade_vector[1:rank] * decay)
+  }
+    
 }
 
 

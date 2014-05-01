@@ -1,4 +1,4 @@
-#include "adhoc_qrels.h"
+#include "include/AdhocQrels.hpp"
 
 using namespace Rcpp;
 using namespace std;

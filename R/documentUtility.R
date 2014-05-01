@@ -10,8 +10,9 @@ utility.prec <- function(grades){
   return(cumGrade * P.Rank(length(grades)))
 }
 
-utility.ERRGain <- function(grades, maxGrade=4){
-  return((2^grades - 1) / 2^maxGrade)
+utility.ERRGain <- function(grades, maxGrade){
+  ifelse(maxGrade == 1,return(grades), return((2^grades - 1) / 2^maxGrade))
+  #return(grades / (maxGrade+1))
 }
 
 

@@ -7,3 +7,6 @@ evalqOnLoad({
   # Load Utility Modules
   loadModule("Runs", TRUE)
 })
+
+# Generic Methods
+num_ret <- function(grades, ...) UseMethod("num_ret")
