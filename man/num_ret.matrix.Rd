@@ -1,0 +1,15 @@
+\name{num_ret.matrix}
+\alias{num_ret.matrix}
+\title{Number of Retrieved Documents}
+\usage{
+\method{num_ret}{matrix}(grades, rankLimit = 1000)
+}
+\arguments{
+  \item{grades}{a numeric matrix of the grades.}
+
+  \item{rankLimit}{document cut off}
+}
+\description{
+\code{num_ret} returns the number of documents retrieved.
+}
+

@@ -1,0 +1,19 @@
+\name{MAPIA}
+\alias{MAPIA}
+\title{Mean Average Precision - Intent Aware}
+\usage{
+MAPIA(qrels_grades, grades, rankLimit = 1000, subtopicProbDist = NULL)
+}
+\arguments{
+  \item{qrels_grades}{a numeric matrix containing the
+  grades all the judged documents in the qrels file.}
+
+  \item{grades}{a numeric matrix of the grades.}
+
+  \item{ranks}{a numeric vector containing a set of ranks
+  at which the measure is calculated.}
+}
+\description{
+\code{AP} Precision
+}
+

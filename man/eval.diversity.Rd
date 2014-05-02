@@ -1,0 +1,33 @@
+\name{eval.diversity}
+\alias{eval.diversity}
+\title{Diversity Evaluation}
+\usage{
+eval.diversity(qrels, runs, measures = NULL, decimal = 4,
+  rankCutoff = 1000, ranks = NULL, sort = c("trecSort", "rankSort"))
+}
+\arguments{
+  \item{qrels}{C++ object returned by \code{read.qrels}
+  with type = 'diversity'}
+
+  \item{runs}{C++ object returned by \code{read.runs}}
+
+  \item{measures}{a character vector containing a set of
+  evaluation measures.  Accepted measures are c('s-recall',
+  'Alpha-DCG', 'Alpha-nDCG', 'ERR-IA',
+  'MAP-IA','nDCG-IA','NRBP', 'nNRBP'). Make sure to use the
+  exact same names.}
+
+  \item{ranks}{A numeric vector contisting of a set of
+  ranks for which scores are to be computed.}
+}
+\description{
+\code{eval.diversity} returns a matrix with the scores
+returned by various diversity evaluation measures for each
+system run per topic.
+}
+\details{
+The function is the main entry to obtain the scores for a
+set of evaluation measures. The returns a matrix with the
+following headers: runid, queryid, nDCG
+}
+
