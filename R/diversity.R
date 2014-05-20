@@ -9,8 +9,8 @@
 #' @param runs  C++ object returned by \code{read.runs}
 #' 
 #' @param measures a character vector containing a set of evaluation measures. 
-#'  Accepted measures are c('s-recall', 'Alpha-DCG', 'Alpha-nDCG', 'ERR-IA',
-#' 'MAP-IA','nDCG-IA','NRBP', 'nNRBP'). 
+#'  Accepted measures are c('num_ret', 'simple_prec', srecall', 'Alpha-DCG', 
+#'  'Alpha-nDCG', 'ERR-IA','MAP-IA','nDCG-IA','NRBP', 'nNRBP'). 
 #' Make sure to use the exact same names.
 #'
 #' @param ranks A numeric vector contisting of a set of ranks for which scores 
@@ -33,17 +33,17 @@ eval.diversity <- function(qrels, runs, measures=NULL, decimal = 4,
   
   if(is.null(measures)) measures <- c('srecall', 'AlphaDCG', 'AlphanDCG',
                                       'ERRIA','MAPIA','DCGIA','NRBP', 'nNRBP',
-                                      'num_ret')
+                                      'num_ret','simple_prec')
   for(runid in runs$getRunids()){
-    for(q in qrels$getQueries()){
+    for(qid in qrels$getQueries()){
       
       # Run Rank List Sorting 
-      run <- runSort(runs, q, runid, sort)
+      run <- runSort(runs, qid, runid, sort)
       
-      grades <- qrels$judgeQuery(q, run)
+      grades <- qrels$judgeQuery(qid, run)
       
-      qrels_grades <- qrels$getMatrix(q)
-      stProb <- qrels$getSubtopicProbabilties(q)
+      qrels_grades <- qrels$getMatrix(qid)
+      stProb <- qrels$getSubtopicProbabilties(qid)
       
       # Compute Ideal Matrices 
       
@@ -58,7 +58,7 @@ eval.diversity <- function(qrels, runs, measures=NULL, decimal = 4,
       header <- c(header, c('topic'))
 
       for(measure in measures){
-        if(measure %in% c('AlphaDCG', 'AlphanDCG', 'srecall')){
+        if(measure %in% c('AlphaDCG', 'AlphanDCG', 'srecall','simple_prec')){
           res <- c(res, do.call(measure, list(qrels_grades, grades, ranks)))
           header <- c(header, paste0(measure,'@',ranks))
         }
@@ -112,6 +112,23 @@ num_ret.matrix <- function(grades, rankLimit=1000){
   if(rankLimit <= nrow(grades)) grades <- grades[1:rankLimit,]
   return(nrow(grades))
 }
+
+#' @title Simple Precision
+#'
+#' @description
+#' \code{simple_prec} returns the Precision at rank k. Even if the document 
+#' contains a single relevant subtopic the document is relevant.
+#' 
+#' @param grades a numeric matrix of the grades. 
+#' 
+#' @param rankLimit document cut off 
+#' 
+simple_prec <- function(qrels_grades, grades, ranks){
+  grades <- rowSums(grades)
+  return(Prec(NULL, grades, ranks))
+}
+
+
 
 #' @title Alpha - Discounted Cumulative Gain at k
 #'
@@ -479,7 +496,7 @@ nNRBP <- function(qrels_grades, grades, rankLimit=1000, idealMatrix=NULL,
 ################################################################################
 
 ideal.alphaDCG <- function(qrels_matrix, rank, alpha=0.5){
-  relDocs <- sum(rowSums(qrels_grades) > 0)
+  relDocs <- sum(rowSums(qrels_matrix) > 0)
   idealRanking <- 1 + .Call("andcg_ideal",data.matrix(qrels_matrix), 
                             min(relDocs, rank), alpha, PACKAGE = "evalIR" )
   
@@ -491,7 +508,7 @@ ideal.alphaDCG <- function(qrels_matrix, rank, alpha=0.5){
 }
 
 ideal.srecall <- function(qrels_matrix, rank){
-  relDocs <- sum(rowSums(qrels_grades) > 0)
+  relDocs <- sum(rowSums(qrels_matrix) > 0)
   idealRanking <- 1 + .Call("srecall_ideal", data.matrix(qrels_matrix), 
                             min(relDocs, rank), PACKAGE = "evalIR" )
   idealMatrix <- data.matrix(qrels_matrix[idealRanking, ])

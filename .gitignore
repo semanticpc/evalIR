@@ -1,13 +1,21 @@
-**.md
-**.log
+# Files created by Text Editors and IDE
+**/nbproject
 **.synctex.gz
 **.tex
+**.md
 **.Rproj.user
 **.Rhistory
 **.RData
 **.DS_Store
+
+# Log Files
+**.log
+
+# Machine dependent files
 **.o
 **.so
 **.dll
-**/nbproject
+
+# Misc
+**/MTurkRlog.tsv
 .Rproj.user

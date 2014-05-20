@@ -1,7 +1,7 @@
 context('Meta Search Algorithms')
 
 
-rank_matrix <- matrix(rep(1:4,3), ncol=3, 
+test_rank_matrix <- matrix(rep(1:4,3), ncol=3, 
                       dimnames=list(letters[1:4], c("sys1","sys2","sys3")))
 
 # test_that("metaAP algorithm", {

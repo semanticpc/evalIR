@@ -34,15 +34,15 @@ eval.adhoc <- function(qrels, runs, measures=NULL, decimal = 4,
                                       'recall','AP','recip_rank','Rprec',
                                       'Prec', 'DCG', 'nDCG', 'ERR', 'nERR')
   for(runid in runs$getRunids()){
-    for(q in qrels$getQueries()){
+    for(qid in qrels$getQueries()){
       
       # Run Rank List Sorting 
-      run <- runSort(runs, q, runid, sort)
+      run <- runSort(runs, qid, runid, sort)
 
       if(is.null(run)) next
       
-      grades <- qrels$judgeQuery(q, run)
-      qrels_grades <- qrels$getGrades(q)
+      grades <- qrels$judgeQuery(qid, run)
+      qrels_grades <- qrels$getGrades(qid)
       header <- c()
       res <- c()
       maxRank <- max(ranks)
@@ -50,7 +50,7 @@ eval.adhoc <- function(qrels, runs, measures=NULL, decimal = 4,
       res <- c(res, runid)
       header <- c(header, c('runid'))
       
-      res <- c(res, q)
+      res <- c(res, qid)
       header <- c(header, c('topic'))
       
       for(measure in measures){

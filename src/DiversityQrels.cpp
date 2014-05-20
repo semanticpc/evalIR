@@ -1,44 +1,23 @@
 #include "include/DiversityQrels.hpp"
 
-using namespace Rcpp;
-using namespace std;
-
 DivQrels::DivQrels(string qrelsPath) {
     ifstream qrelsFile(qrelsPath.c_str(), ios_base::in);
     string docid, line, subtopic;
-    int query, curQuery;
+
+    int query;
     double rel;
-    Qrels qrels;
-    bool first = true;
     while (std::getline(qrelsFile, line)) {
         std::istringstream iss(line);
         iss >> query >> subtopic >> docid >> rel;
-        if (first) {
-            curQuery = query;
-            qrels.queryID = curQuery;
-            qrels.grades.clear();
-            qrels.non_rel_docs.clear();
-            qrels.st_probability.clear();
-            first = false;
-        }
-        if (curQuery != query) {
-            qrels_list.insert(make_pair(curQuery, qrels));
-            curQuery = query;
-            qrels.queryID = curQuery;
-            qrels.grades.clear();
-            qrels.non_rel_docs.clear();
-            qrels.st_probability.clear();
-        }
-        qrels.addDocument(docid, rel, subtopic);
+        qrels[query].addJudgment(docid, rel, subtopic);
     }
-    qrels_list.insert(make_pair(curQuery, qrels));
 
 }
 
 SEXP DivQrels::getSubtopicProbabilties(int queryID) {
-    map<int, Qrels>::iterator it = qrels_list.find(queryID);
-    if (it != qrels_list.end())
-        return Rcpp::wrap(qrels_list[queryID].st_probability);
+    QUERY_DIV_QRELS::iterator it = qrels.find(queryID);
+    if (it != qrels.end())
+        return Rcpp::wrap(qrels[queryID].st_prob);
     else {
         Rprintf("Query ID does not exist in the Qrels\n");
         return R_NilValue;
@@ -48,36 +27,23 @@ SEXP DivQrels::getSubtopicProbabilties(int queryID) {
 }
 
 SEXP DivQrels::getSubtopicMatrix(int queryID) {
-    map<int, Qrels>::iterator it = qrels_list.find(queryID);
-    if (it != qrels_list.end()) {
-        Rcpp::NumericMatrix matrix(qrels_list[queryID].grades.size(),
-                qrels_list[queryID].st_probability.size());
+    QUERY_DIV_QRELS::iterator it = qrels.find(queryID);
+    if (it != qrels.end()) {
+        Rcpp::NumericMatrix matrix(qrels[queryID].grades.size(),
+                qrels[queryID].getSTCount());
 
-        vector<string> subtopics;
-
-        map<string, int> subtopic_indexes;
-        int i = 0;
-        for (map<string, double>::iterator it = qrels_list[queryID].st_probability.begin();
-                it != qrels_list[queryID].st_probability.end(); ++it) {
-            subtopic_indexes[it->first] = i++;
-            subtopics.push_back(it->first);
-        }
-
-
-
-        int r = -1;
-        map<string, vector<string> >::iterator documents;
         vector<string> docids;
-        for (documents = qrels_list[queryID].grades.begin();
-                documents != qrels_list[queryID].grades.end(); ++documents) {
-            ++r;
+        vector<string> subtopics = qrels[queryID].getSTNames();
+        map<string, SubtopicGrade>::iterator documents;
+        documents = qrels[queryID].grades.begin();
+        arma::mat mat(qrels[queryID].grades.size(), subtopics.size());
+        int i = 0;
+        while (documents != qrels[queryID].grades.end()) {
             docids.push_back(documents->first);
-            for (vector<string>::iterator it = (documents->second).begin();
-                    it != (documents->second).end(); ++it) {
-                matrix(r, subtopic_indexes[(*it)]) = 1;
-            }
+            mat.row(i++) = arma::trans(qrels[queryID].getGrade(documents->first));
+            ++documents;
         }
-
+        matrix = Rcpp::wrap(mat);
         matrix.attr("dimnames") =
                 Rcpp::List::create(docids, subtopics);
         return matrix;
@@ -90,15 +56,20 @@ SEXP DivQrels::getSubtopicMatrix(int queryID) {
 
 vector<int> DivQrels::getQueries() {
     vector<int> queries;
-    for (map<int, Qrels>::iterator it = qrels_list.begin(); it != qrels_list.end(); ++it)
+    QUERY_DIV_QRELS::iterator it = qrels.begin();
+    while (it != qrels.end()) {
         queries.push_back(it->first);
+        ++it;
+    }
+
+
     return queries;
 }
 
 SEXP DivQrels::getNonRelDocuments(int queryID) {
-    map<int, Qrels>::iterator it = qrels_list.find(queryID);
-    if (it != qrels_list.end())
-        return Rcpp::wrap(qrels_list[queryID].non_rel_docs);
+    QUERY_DIV_QRELS::iterator it = qrels.find(queryID);
+    if (it != qrels.end())
+        return Rcpp::wrap(qrels[queryID].non_rel_docs);
     else {
         Rprintf("Query ID does not exist in the Qrels\n");
         return R_NilValue;
@@ -108,35 +79,24 @@ SEXP DivQrels::getNonRelDocuments(int queryID) {
 }
 
 SEXP DivQrels::judgeQuery(int queryID, vector<string> run) {
-    map<int, Qrels>::iterator it = qrels_list.find(queryID);
-    NumericVector judgedGrades(run.size());
-    if (it != qrels_list.end()) {
+    QUERY_DIV_QRELS::iterator it = qrels.find(queryID);
+    if (it != qrels.end()) {
+        Rcpp::NumericMatrix matrix(qrels[queryID].grades.size(),
+                qrels[queryID].getSTCount());
 
-        NumericMatrix matrix(run.size(),
-                qrels_list[queryID].st_probability.size());
-
-        vector<string> subtopics;
-
-        map<string, int> subtopic_indexes;
-        int i = 0;
-        for (map<string, double>::iterator it = qrels_list[queryID].st_probability.begin();
-                it != qrels_list[queryID].st_probability.end(); ++it) {
-            subtopic_indexes[it->first] = i++;
-            subtopics.push_back(it->first);
-        }
+        vector<string> docids;
+        vector<string> subtopics = qrels[queryID].getSTNames();
+        map<string, SubtopicGrade>::iterator documents;
+        arma::mat mat(run.size(), subtopics.size());
+        int row_index = 0;
 
         for (int i = 0; i < run.size(); i++) {
-            map<string, vector<string> >::iterator it =
-                    qrels_list[queryID].grades.find(run.at(i));
-            if (it != qrels_list[queryID].grades.end()) {
-                for (vector<string>::iterator st = (it->second).begin();
-                        st != (it->second).end(); ++st) {
-                    matrix(i, subtopic_indexes[(*st)]) = 1;
-                }
-            } else
-                matrix.row(i) = rep(0, qrels_list[queryID].st_probability.size());
+            docids.push_back(run[i]);
+            mat.row(row_index++) = arma::trans(qrels[queryID].getGrade(run[i]));
         }
-        matrix.attr("dimnames") = List::create(run, subtopics);
+        matrix = Rcpp::wrap(mat);
+        matrix.attr("dimnames") =
+                Rcpp::List::create(docids, subtopics);
         return matrix;
     } else {
         Rprintf("Query ID does not exist in the Qrels\n");
@@ -157,4 +117,5 @@ RCPP_MODULE(DivQrels) {
             .method("getSubtopicProbabilties", &DivQrels::getSubtopicProbabilties)
             .method("judgeQuery", &DivQrels::judgeQuery);
 }
+
 

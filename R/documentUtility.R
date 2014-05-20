@@ -23,3 +23,16 @@ utility.alphaDCG <- function(runMatrix, alpha=0.5){
   gainVector <- apply(gainMatrix, 1, sum)
   return(gainVector)
 }
+
+# Triplet Utility Function
+utility.triplet <- function(util, cond, docid, type='ave'){
+  # Get the utility score for each condition
+  util$conditions <- as.character(util$conditions)
+  util$doc <- as.character(util$doc)
+
+  scores <- unlist(sapply(cond, function(x) 
+    subset(util, conditions==x & doc == docid[1])$utility))
+
+  if(type == 'ave') return(sum(scores)/length(cond))
+  else if(type == 'min') return(min(scores))
+}

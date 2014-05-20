@@ -5,20 +5,35 @@
 #' 
 #' @param qrelsPath path to the qrels file
 #' 
-#' @param type type  of the qrels file. ('adhoc', diversity') are currently 
-#' supported.
+#' @param type type  of the qrels file. ('adhoc', diversity', 'triplets', 
+#' 'simulateTriplets') are currently supported.
+#' 
+#' @param opts an optional parameter to provide a list of options to pass to the 
+#' parser. Options is a list containing various options as shown below:
+#' opts=list(ties=c('random', 'aplhabetical', 'metaAP'),
+#'           simulationType=c('subtopic'))
 #' 
 #' @details
 #' The function creates a C++ object containing various information parsed from
 #' the qrels file. 
 #' 
 #' @export
-read.qrels <- function(qrelsPath, type=c("adhoc","diversity")){
+read.qrels <- function(qrelsPath, type=c('adhoc','diversity',
+                                         'triplets', 'simulateTriplets'),
+                       opts=NULL){
   type <- match.arg(type)
+  
+  
   suppressPackageStartupMessages(require(tools, quietly=T))
   qrelsPath <- file_path_as_absolute(qrelsPath)
   if(type == "adhoc") return( new(AdhocQrels, qrelsPath))
+  
   else if(type == "diversity") return( new(DivQrels, qrelsPath))
+  
+  else if(type == "triplets") return( new(TripletQrels, qrelsPath))
+  
+  else if(type == "simulateTriplets") 
+    return( new(SimulateTripletQrels, qrelsPath, opts))
 }
 
 
