@@ -73,22 +73,23 @@ test_that("Read Qrels: TripletQrels", {
   qrels <- read.qrels(test_qrelsFile, type='triplets')
   
   #Checking getQueries
-  expect_equal(sort(qrels$getQueries()), c(1, 3))
+  expect_equal(sort(qrels$getQueries()), c(1, 3, 4))
   
   # Checking Preference Counts
   docs <- c('a', 'b', 'c', 'd','e','f','g','h','i','j')
+  cond <- rep('', length(docs))
   pref_counts <- c(a=5, b=4, c=2, d=0, e=9, f=5, g=3, h=2, i=0, j=0)
-  expect_equal(qrels$getPrefCount(1, docs),  pref_counts)
+  expect_equal(qrels$getCondPrefCount(1, cond, docs),  pref_counts)
   pref_counts <- rep(0,10)
   names(pref_counts) <- docs
-  expect_equal(qrels$getPrefCount(3, docs),  pref_counts)
+  expect_equal(qrels$getCondPrefCount(3, cond, docs),  pref_counts)
   
   # Checking Apprearnce Counts
   app_counts <- c(a=5, b=10, c=10, d=0, e=10, f=10, g=5, h=10, i=0, j=0)
-  expect_equal(qrels$getApperanceCount(1, docs),  app_counts)
+  expect_equal(qrels$getCondApperanceCount(1, cond, docs),  app_counts)
   app_counts <- c(a=0, b=10, c=2, d=0, e=2, f=2, g=2, h=2, i=0, j=0)
   names(app_counts) <- docs
-  expect_equal(qrels$getApperanceCount(3, docs),  app_counts)
+  expect_equal(qrels$getCondApperanceCount(3, cond, docs),  app_counts)
   
   # Checing getDocuments
   prf_docs <- c('a', 'b', 'c','e','f','g','h')
@@ -136,6 +137,7 @@ test_that("TREC Read Run: getRunids and getQueries", {
   # Testing the limit option
   runs <- read.runs(c(test_runFile1, test_runFile2), runids=c('run1', 'run2'), limit=5)
   test_run1RankingA <- runSort(runs,  301, 'run1', sort_type='rankSort')
+  
   expect_equal(test_run1RankingA, run1RankingA)
   
 })  
@@ -150,33 +152,45 @@ test_that("Read Qrels: SimulateTriplets", {
   qrels <- read.qrels(test_qrelsFile, type='simulateTriplets')
   expect_equal(sort(qrels$getQueries()), c(1, 2, 3))
   
-  params <- list(simulateType='subtopic')
+  params <- list(simulation='subtopic')
   qrels <- read.qrels(test_qrelsFile, type='simulateTriplets', 
                       opts=params)
   
   
+  # Juge Triplet 
+  expect_equal(qrels$judgeTriplet(1, c(''), 'a', 'b'), 'a')
+  
+  params <- list(simulation='subtopicLR23', ties='tie' )
+  qrels <- read.qrels(test_qrelsFile, type='simulateTriplets', 
+                      opts=params)
+  expect_equal(qrels$judgeTriplet(1, c(''), 'a', 'b'), 'a')
+  expect_equal(qrels$judgeTriplet(1, c(''), 'b', 'c'), 'tie')
+  expect_equal(qrels$judgeTriplet(1, c('x'), 'y', 'z'), '-3')
+  expect_equal(qrels$judgeTriplet(1, c('a'), 'y', 'z'), '-2')
+  
   pref_counts <- c(a=4, e=4)
-  expect_more_than(qrels$getPrefCount(1, c('a')), 4)
-  expect_more_than(qrels$getPrefCount(1, c('e')), 4)
+  expect_more_than(qrels$getCondPrefCount(1, c(''), c('a')), 4)
+  expect_more_than(qrels$getCondPrefCount(1, c(''), c('e')), 4)
 
-  params <- list(simulateType='subtopic', resolveTies='alphabetical')
+  params <- list(simulation='subtopic', ties='alphabetical')
   qrels <- read.qrels(test_qrelsFile, type='simulateTriplets', 
                       opts=params)
   
   # Checking Preference Counts
   docs <- c('a', 'b', 'c', 'd','e','f','g','h','i','j')
+  cond <- rep('', length(docs))
   pref_counts <- c(a=6, b=4, c=3, d=0, e=5, f=2, g=1, h=0, i=0, j=0)
-  expect_equal(qrels$getPrefCount(1, docs),  pref_counts )
+  expect_equal(qrels$getCondPrefCount(1, cond, docs),  pref_counts )
   pref_counts <- rep(0,10)
   names(pref_counts) <- docs
-  expect_equal(qrels$getPrefCount(3, docs),  pref_counts )
+  expect_equal(qrels$getCondPrefCount(3, cond, docs),  pref_counts )
   
   # Checking Apprearnce Counts
   app_counts <- c(a=6, b=6, c=6, d=0, e=6, f=6, g=6, h=6, i=0, j=0)
-  expect_equal(qrels$getApperanceCount(1, docs),  app_counts)
+  expect_equal(qrels$getCondApperanceCount(1, cond, docs),  app_counts)
   app_counts <- rep(0,10)
   names(app_counts) <- docs
-  expect_equal(qrels$getApperanceCount(3, docs),  app_counts)
+  expect_equal(qrels$getCondApperanceCount(3, cond, docs),  app_counts)
   
   
   
@@ -264,6 +278,7 @@ test_that("TREC Read Run: getScorekMatrix and runSort Methods", {
   test_run1RankingA <- runSort(runs,  301, 'run1', sort_type='trecSort')
   run1RankingA <- c('DocN','DocM','FR9','FR94','Docx','DocE','DocB','DocA',
                     'DocI','DR303')
+  
   expect_equal(test_run1RankingA, run1RankingA)
 })
 

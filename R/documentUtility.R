@@ -32,7 +32,9 @@ utility.triplet <- function(util, cond, docid, type='ave'){
 
   scores <- unlist(sapply(cond, function(x) 
     subset(util, conditions==x & doc == docid[1])$utility))
-
-  if(type == 'ave') return(sum(scores)/length(cond))
-  else if(type == 'min') return(min(scores))
+  if(length(scores) == 0)  return (0)
+  else if(type == 'ave') return(sum(scores)/length(cond))
+  else if(type == 'min') 
+    ifelse(max(scores) == 0, return(0), return(min(scores)))
+  
 }

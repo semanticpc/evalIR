@@ -100,19 +100,17 @@ public:
 
     vector<string> getAnnotators(int query);
 
+
     SEXP getTriplets(int queryID);
 
-    SEXP getPrefCount(int queryID, vector<string> doc);
-
     SEXP getCondPrefCount(int queryID, vector<string> topdoc, vector<string> doc);
-
-    SEXP getApperanceCount(int queryID, vector<string> doc);
 
     SEXP getCondApperanceCount(int queryID, vector<string> topdoc, vector<string> doc);
 
     SEXP getDocuments(int query);
 
     SEXP getConditions(int query);
+
 };
 
 

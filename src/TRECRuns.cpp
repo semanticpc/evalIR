@@ -24,6 +24,7 @@ private:
     map<int, map<string, Document> > query_docs;
     map<int, int> query_docCounts;
     map<string, int> runids;
+    vector<string> runid_names;
     int numberOfRuns;
 
 
@@ -42,18 +43,22 @@ public:
     }
 
     void addRun(string path, string runid, int docLimit = 1000) {
-        runids[runid] = numberOfRuns++;
+        runids[runid] = numberOfRuns;
+        runid_names.push_back(runid);
+        numberOfRuns += 1;
         query_docCounts.clear();
         ifstream qrelsFile(path.c_str(), ios_base::in);
         string docid, q0, id, line;
+        string rank_str;
+
         int query, rank, curQuery, docCount = 0;
         double score;
         bool first = true;
 
         while (getline(qrelsFile, line)) {
             istringstream iss(line);
-            iss >> query >> q0 >> docid >> rank >> score >> id;
-
+            iss >> query >> q0 >> docid >> rank_str >> score >> id;
+            rank = transform_rank((char*) rank_str.c_str());
             if (q0 != "Q0") continue;
 
             if (first) {
@@ -84,12 +89,25 @@ public:
         }
     }
 
+    int transform_rank(char* rank_str) {
+        int value = 0;
+
+        if (rank_str == (char *) 0 || *rank_str == '\0')
+            return -1;
+
+        for (; *rank_str; rank_str++)
+            if (*rank_str >= '0' && *rank_str <= '9') {
+                if (value > 100000)
+                    return -1;
+                value = 10 * value + (*rank_str - '0');
+            } else
+                return -1;
+
+        return value;
+    }
+
     vector<string> getRunids() {
-        vector<string> run;
-        for (map<string, int>::iterator it = runids.begin();
-                it != runids.end(); ++it)
-            run.push_back(it->first);
-        return run;
+        return runid_names;
     }
 
     vector<int> getQueries() {
@@ -122,18 +140,14 @@ public:
 
                 ++r;
                 docids.push_back(doc->first);
-                for (int runs = 0; runs < doc->second.ranks.size(); runs++)
+                for (int runs = 0; runs < doc->second.ranks.size(); runs++) {
+                    string runid_name = doc->second.runids.at(runs);
                     if (type == "pos")
-                        matrix(r, runids[doc->second.runids.at(runs)]) = doc->second.docPos.at(runs);
+                        matrix(r, runids[runid_name]) = doc->second.docPos.at(runs);
                     else
-                        matrix(r, runids[doc->second.runids.at(runs)]) = doc->second.ranks.at(runs);
+                        matrix(r, runids[runid_name]) = doc->second.ranks.at(runs);
+                }
             }
-
-            vector<string> runid_names;
-            for (map<string, int>::iterator it = runids.begin();
-                    it != runids.end(); ++it)
-                runid_names.push_back(it->first);
-
             matrix.attr("dimnames") =
                     Rcpp::List::create(docids, runid_names);
             return matrix;
@@ -161,11 +175,6 @@ public:
                 for (int runs = 0; runs < doc->second.ranks.size(); runs++)
                     matrix(r, runids[doc->second.runids.at(runs)]) = doc->second.scores.at(runs);
             }
-
-            vector<string> runid_names;
-            for (map<string, int>::iterator it = runids.begin();
-                    it != runids.end(); ++it)
-                runid_names.push_back(it->first);
 
             matrix.attr("dimnames") =
                     Rcpp::List::create(docids, runid_names);

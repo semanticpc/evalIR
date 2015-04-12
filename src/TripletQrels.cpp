@@ -60,29 +60,6 @@ vector<int> TripletQrels::getQueries() {
     return queries;
 }
 
-SEXP TripletQrels::getApperanceCount(int query, vector<string> docids) {
-    vector<int> scores;
-    if (hasQuery(query, "")) {
-        for (int i = 0; i < docids.size(); i++) {
-            int s = 0;
-            for (ANNOTATORS::iterator an = qrels[query].begin();
-                    an != qrels[query].end(); ++an) {
-                COND condition();
-                s += qrels[query][an->first].getApprearance(condition, docids[i]);
-            }
-            scores.push_back(s);
-        }
-        // Convert to a R Vector  to return
-        Rcpp::NumericVector results(docids.size());
-        results = Rcpp::wrap(scores);
-        results.attr("names") = Rcpp::wrap(docids);
-        return results;
-    } else {
-        Rprintf("Query ID does not exist in the Qrels\n");
-        return R_NilValue;
-    }
-}
-
 SEXP TripletQrels::getCondApperanceCount(int query, vector<string> topdoc,
         vector<string> docids) {
     vector<int> scores;
@@ -108,31 +85,6 @@ SEXP TripletQrels::getCondApperanceCount(int query, vector<string> topdoc,
         Rprintf("Query ID does not exist in the Qrels\n");
         return R_NilValue;
     }
-}
-
-SEXP TripletQrels::getPrefCount(int query, vector<string> docids) {
-    vector<int> scores;
-    if (hasQuery(query, "")) {
-        for (int i = 0; i < docids.size(); i++) {
-            int s = 0;
-            for (ANNOTATORS::iterator an = qrels[query].begin();
-                    an != qrels[query].end(); ++an) {
-                COND condition("");
-                s += qrels[query][an->first].getCondPref(condition, docids[i]);
-            }
-            scores.push_back(s);
-        }
-
-        // Convert to a R Vector  to return
-        Rcpp::NumericVector results(docids.size());
-        results = Rcpp::wrap(scores);
-        results.attr("names") = Rcpp::wrap(docids);
-        return results;
-    } else {
-        Rprintf("Query ID does not exist in the Qrels\n");
-        return R_NilValue;
-    }
-
 }
 
 SEXP TripletQrels::getCondPrefCount(int query, vector<string> topdoc,
@@ -212,9 +164,7 @@ RCPP_MODULE(TripletQrels) {
             .method("getDocuments", &TripletQrels::getDocuments)
             .method("getConditions", &TripletQrels::getConditions)
             .method("getAnnotators", &TripletQrels::getAnnotators)
-            .method("getPrefCount", &TripletQrels::getPrefCount)
             .method("getCondPrefCount", &TripletQrels::getCondPrefCount)
-            .method("getApperanceCount", &TripletQrels::getApperanceCount)
             .method("getCondApperanceCount", &TripletQrels::getCondApperanceCount);
 
 }

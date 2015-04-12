@@ -28,7 +28,7 @@ test_that("getTripletUtility",{
   #print(utility.triplet(utils, c('a','g'), c('e')))
   print(DivTripletMeasure(utils, c('a','b','e'), ranks=c(3),
                           F_type='average',P_k='RBP'))
-                          
+  
   
 })
 

@@ -47,7 +47,8 @@ parseWebTopicDesc <- function(filename){
 # Functions to Sort the System Runs
 
 
-runSort <- function(runs, qid, runid, sort_type= c('trecSort', 'rankSort')){
+runSort <- function(runs, qid, runid, sort_type= c('trecSort', 'rankSort',
+                                                   'ndevalSort')){
   sort_type <- match.arg(sort_type)
   run <- c()
   
@@ -60,6 +61,10 @@ runSort <- function(runs, qid, runid, sort_type= c('trecSort', 'rankSort')){
   }else if(sort_type == 'rankSort'){
     rankMat <- runs$getRankMatrix(qid)[,runid]
     run <- names(sort(rankMat[rankMat > 0])) 
+  }else if(sort_type == 'ndevalSort'){
+    rankMat <- runs$getGivenRankMatrix(qid)[,runid]
+    run <- names(sort(rankMat[rankMat > 0])) 
+    
   }
   return(run)
 }

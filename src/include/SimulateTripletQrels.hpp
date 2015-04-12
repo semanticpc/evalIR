@@ -36,11 +36,11 @@ private:
 
 
 
-    string simulateJudgment_Subtopic(int query, vector<string> top, string left, string right);
+    string sim_Subtopic(int query, vector<string> top, string left, string right);
 
-    string simulateJudgment_SubtopicLR23(int query, vector<string> top, string left, string right);
+    string sim_SubtopicLR23(int query, vector<string> top, string left, string right);
 
-    string resolveTies_random(string left, string right);
+    string ties_random(string left, string right);
 
 
     void simulate(int query, TripletQrels::COND &condition);
@@ -58,11 +58,7 @@ public:
 
     vector<int> getQueries();
 
-    SEXP getPrefCount(int queryID, vector<string> doc);
-
     SEXP getCondPrefCount(int queryID, vector<string> topdoc, vector<string> doc);
-
-    SEXP getApperanceCount(int queryID, vector<string> doc);
 
     SEXP getCondApperanceCount(int queryID, vector<string> topdoc, vector<string> doc);
 

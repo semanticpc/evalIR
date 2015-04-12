@@ -4,7 +4,7 @@ SOURCES=$(wildcard *.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
 
 PKG_CPPFLAGS=-I. -I/Users/praveen/work/evalIR/src/judgments
-PKG_LIBS=`${R_HOME}/bin/Rscript -e  "Rcpp:::LdFlags()"` $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
+PKG_LIBS=`${R_HOME}/bin/Rscript -e  "Rcpp:::LdFlags()"` 
 
 all: $(SHLIB)
 
