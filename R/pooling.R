@@ -8,7 +8,6 @@
 #' or via the \code{Summary} group generic.  For this to work properly,
 #' the arguments \code{...} should be unnamed, and dispatch is on the
 #' first argument.'
-
 pooling.topk <- function(rank_matrix, k){
   
   min_ranks <- apply(rank_matrix, 1, function(x) {min(x[x > 0])})

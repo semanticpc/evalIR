@@ -1,4 +1,4 @@
-#include "include/DiversityQrels.hpp"
+#include "DiversityQrels.hpp"
 
 DivQrels::DivQrels(string qrelsPath) {
     ifstream qrelsFile(qrelsPath.c_str(), ios_base::in);

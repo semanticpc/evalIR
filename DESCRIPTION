@@ -10,5 +10,3 @@ License: What Licence is it under ?
 LazyLoad: yes
 Depends: methods, Rcpp (>= 0.10.2), RcppArmadillo, XML, plyr, testthat
 LinkingTo: Rcpp, RcppArmadillo
-
-

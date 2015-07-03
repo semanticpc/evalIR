@@ -1,12 +1,12 @@
 ## Use the R_HOME indirection to support installations of multiple R version
-SOURCES=$(wildcard *.cpp)
+#SOURCES=$(wildcard *.cpp)
 
-OBJECTS = $(SOURCES:.cpp=.o)
+#OBJECTS = $(SOURCES:.cpp=.o)
 
-PKG_CPPFLAGS=-I. -I/Users/praveen/work/evalIR/src/judgments
-PKG_LIBS=`${R_HOME}/bin/Rscript -e  "Rcpp:::LdFlags()"` 
+#PKG_CPPFLAGS=-I. -I/Users/praveen/work/evalIR/src/include
+#PKG_LIBS=`${R_HOME}/bin/Rscript -e  "Rcpp:::LdFlags()"` 
 
-all: $(SHLIB)
+#all: $(SHLIB)
 
 #clean:
 #  rm -f $(OBJECTS); rm -f *.so

@@ -1,5 +1,5 @@
 
-#include "include/DiversityMeasures.hpp"
+#include "DiversityMeasures.hpp"
 #include <RcppArmadillo.h>
 
 

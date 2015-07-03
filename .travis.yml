@@ -1,0 +1,14 @@
+language: R
+sudo: required
+warnings_are_errors: true
+
+r_binary_packages:
+  - XML
+  - Rcpp
+  - knitr
+
+r_github_packages:
+  - jimhester/covr
+
+after_success:
+  - Rscript -e 'library(covr);coveralls()'

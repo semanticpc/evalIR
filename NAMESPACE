@@ -1,2 +1,3 @@
 useDynLib(evalIR)
 exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp, evalCpp)

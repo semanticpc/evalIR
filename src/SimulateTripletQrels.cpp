@@ -1,5 +1,5 @@
 #include <map>
-#include "include/SimulateTripletQrels.hpp"
+#include "SimulateTripletQrels.hpp"
 
 SimulateTripletQrels::SimulateTripletQrels(string _qrelsPath,
         SEXP _opts) {

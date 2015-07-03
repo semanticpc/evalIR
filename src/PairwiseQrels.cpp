@@ -1,4 +1,4 @@
-#include "include/PairwiseQrels.hpp"
+#include "PairwiseQrels.hpp"
 
 using namespace Rcpp;
 using namespace std;

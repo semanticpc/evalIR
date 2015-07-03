@@ -1,4 +1,4 @@
-#include "include/TripletQrels.hpp"
+#include "TripletQrels.hpp"
 
 using namespace Rcpp;
 using namespace std;
