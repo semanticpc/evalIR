@@ -1,5 +1,4 @@
 #' @title Ad-hoc Evaluation
-#'
 #' @description
 #' \code{eval.adhoc} returns a matrix with the scores returned by the evaluation
 #' measures for each system run per topic.
@@ -15,12 +14,12 @@
 #'
 #' @param ranks A numeric vector contisting of a set of ranks for which scores 
 #' are to be computed. Applies only to certain measure that needs a cut off like
-#' Prec@k, nDCG@k, ERR@k, etc.
+#' Prec@@k, nDCG@@k, ERR@@k, etc.
 #'  
 #' @details
 #' The function is the main entry to obtain the scores for a set of evaluation
 #' measures. The returns a matrix with the following headers: runid, queryid,
-#' nDCG@10, .... A set of measures can be passed on as argument. 
+#' nDCG@@10, .... A set of measures can be passed on as argument. 
 #' 
 #' @export
 eval.adhoc <- function(qrels, runs, measures=NULL, decimal = 4,

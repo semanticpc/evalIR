@@ -2,5 +2,5 @@
 #'
 #' @name evalIR.
 #' @docType package
-#' @import dplyr plyr XML knitr testthat methods RcppArmadillo Rcpp
+#' @import XML knitr testthat methods RcppArmadillo Rcpp
 NULL

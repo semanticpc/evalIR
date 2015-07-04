@@ -19,7 +19,7 @@
 #' @details
 #' The function is the main entry to obtain the scores for a set of evaluation
 #' measures. The returns a matrix with the following headers: runid, queryid,
-#' nDCG@10, .... A set of measures can be passed on as argument.
+#' nDCG@@10, .... A set of measures can be passed on as argument.
 #'
 #' @export
 #'

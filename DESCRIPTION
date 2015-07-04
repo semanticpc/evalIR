@@ -1,12 +1,21 @@
 Package: evalIR
 Type: Package
-Title: What the package does (short line)
-Version: 1.0
+Title: Tool for IR Evaluation
+Version: 0.1
 Date: 2013-02-08
 Author: Praveen Chandar
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What Licence is it under ?
+Maintainer: Praveen Chandar <pcr@udel.edu>
+Description: Tools for evaluating Information Retrieval Systems.
 LazyLoad: yes
-Depends: methods, Rcpp (>= 0.10.2), RcppArmadillo, XML, plyr, testthat
-LinkingTo: Rcpp, RcppArmadillo
+Import:
+  Rcpp
+Depends:
+  methods,
+  Rcpp (>= 0.10.2),
+  RcppArmadillo,
+  XML,
+  testthat,
+  knitr
+LinkingTo:
+  Rcpp,
+  RcppArmadillo
